@@ -1,9 +1,9 @@
-#!/usr/bin/env python
-'''
+#!/usr/bin/env python3
+"""
 
 Reddit Image Downloader
 
-Usage: download_images.py [-s SUBREDDIT] [-n NUMBER OF PICTURES] [-p PAGE] [-q SEARCH QUERY] 
+Usage: download_images.py [-s SUBREDDIT] [-n NUMBER OF PICTURES] [-p PAGE] [-q SEARCH QUERY]
 
 -h --help                           show this
 -s --subreddit SUBREDDIT            specify subreddit
@@ -11,17 +11,27 @@ Usage: download_images.py [-s SUBREDDIT] [-n NUMBER OF PICTURES] [-p PAGE] [-q S
 -p --page PAGE                      hot, top, controversial, new, rising [default: hot]
 -q --query SEARCH QUERY             specify a specific search term
 
-'''
+"""
+# TODOS
+# - Change to argparse
+# - Convert Python3 & style
+# - Change to an object-oriented design
+# - Use phash from imagehashsort.py to filter out images with a known hash or directory name
+# - Store credentials in a central place and ask from user
+# - Store all configuration in system config folder, like ripme
+# - Store a URL history, like Ripme
+# - Use sqlite or Mongodb for all storage files
 
-import praw
-import urllib
-import sys
 import os
 import signal
+import sys
+import urllib
+
+import praw
 from credentials import ID, SECRET, PASSWORD, AGENT, USERNAME
+from docopt import docopt
 from prawcore import NotFound
 from prawcore import PrawcoreException
-from docopt import docopt
 
 
 def main():
@@ -31,7 +41,7 @@ def main():
 
     # handle 'ctrl + c' if downloads takes too long
     def sigint_handler(signum, frame):
-        print '\nQuitting...'
+        print('\nQuitting...')
         sys.exit(1)
 
     signal.signal(signal.SIGINT, sigint_handler)
@@ -61,7 +71,7 @@ def main():
                 reddit.subreddits.search_by_name(subreddit, exact=True)
                 break
             except NotFound:
-                print 'Subreddit %s does not exist.' % subreddit
+                print('Subreddit %s does not exist.' % subreddit)
 
     # determine what to search
     if search_term == None:
@@ -75,6 +85,8 @@ def main():
             results = reddit.subreddit(subreddit).rising()
         elif page == 'new':
             results = reddit.subreddit(subreddit).new()
+        else:
+            raise Exception(f"Unsupported Page kind {page}")
     else:
         results = reddit.subreddit(subreddit).search(
             search_term, params={'nsfw': 'yes'})
@@ -92,20 +104,17 @@ def main():
                     img_url = submission.url
                     _, extension = os.path.splitext(img_url)
                     if extension in ['.jpg', '.gif', '.jpeg', '.png']:
-                        print '\nDownloading', subreddit + str(
-                            count) + extension
-                        print 'Source:', img_url
-                        print 'Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(
-                            submission)
+                        print('\nDownloading', subreddit + str(count) + extension)
+                        print('Source:', img_url)
+                        print('Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(submission))
                         urllib.urlretrieve(img_url, 'images/%s%i%s' %
                                            (subreddit, count, extension))
                         count += 1
                     # .gifv file extensions do not play, convert to .gif
                     elif extension == '.gifv':
-                        print '\nDownloading', subreddit + str(count) + '.gif'
-                        print 'Source:', img_url
-                        print 'Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(
-                            submission)
+                        print('\nDownloading', subreddit + str(count) + '.gif')
+                        print('Source:', img_url)
+                        print('Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(submission))
                         root, _ = os.path.splitext(img_url)
                         img_url = root + '.gif'
                         urllib.urlretrieve(img_url, 'images/%s%i%s' %
@@ -113,10 +122,9 @@ def main():
                         count += 1
                 if 'https://thumbs.gfycat.com/' in submission.url:
                     img_url = submission.url
-                    print '\nDownloading', subreddit + str(count) + '.gif'
-                    print 'Source:', img_url
-                    print 'Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(
-                        submission)
+                    print('\nDownloading', subreddit + str(count) + '.gif')
+                    print('Source:', img_url)
+                    print('Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(submission))
                     urllib.urlretrieve(img_url, 'images/%s%i%s' %
                                        (subreddit, count, '.gif'))
                     count += 1
@@ -130,19 +138,20 @@ def main():
                         img_url = img_url[0] + img_url[1]
                     root, _ = os.path.splitext(img_url)
                     img_url = root + '-size_restricted.gif'
-                    print '\nDownloading', subreddit + str(count) + '.gif'
-                    print 'Source:', img_url
-                    print 'Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(
+                    print('\nDownloading', subreddit + str(count) + '.gif')
+                    print('Source:', img_url)
+                    print
+                    'Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(
                         submission)
                     urllib.urlretrieve(img_url, 'images/%s%i%s' %
                                        (subreddit, count, '.gif'))
                     count += 1
             else:
-                print '\nCompleted!\n'
+                print('\nCompleted!\n')
                 break
 
     except PrawcoreException:
-        print '\nError accessing subreddit!\n'
+        print('\nError accessing subreddit!\n')
 
 
 if __name__ == '__main__':
