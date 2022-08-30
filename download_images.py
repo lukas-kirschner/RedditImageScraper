@@ -21,11 +21,12 @@ Usage: download_images.py [-s SUBREDDIT] [-n NUMBER OF PICTURES] [-p PAGE] [-q S
 # - Store all configuration in system config folder, like ripme
 # - Store a URL history, like Ripme
 # - Use sqlite or Mongodb for all storage files
-
+import argparse
 import os
 import signal
 import sys
 import urllib
+from pathlib import Path
 
 import praw
 from credentials import ID, SECRET, PASSWORD, AGENT, USERNAME
@@ -35,6 +36,18 @@ from prawcore import PrawcoreException
 
 
 def main():
+    parser = argparse.ArgumentParser(prog="Reddit Image Scraper",
+                                     description='A Reddit Image Downloader that supports metadata scraping.')
+    parser.add_argument('-s', '--subreddit', required=True, action="store", dest='subreddit',
+                        help='Specify the subreddit to scrape. Valid formats include "https://www.reddit.com/r/wallpapers/",'
+                             ' "wallpapers", "r/wallpapers", "u/exampleuser", "reddit.com/user/exampleuser/submitted/?sort=top&t=day"')
+    parser.add_argument('-o', '--out-dir', required=False, action="store", dest="dest_dir", default='out',
+                        help='Specify the destination directory to download scraped files into. Default is "out/"')
+    args = parser.parse_args()
+
+    # Init Source DirTODO
+    source_dir: Path = Path(args.source_dir)
+
     # initialize variables
     subreddit = ''
     num_pics = 0
@@ -61,7 +74,7 @@ def main():
     page = arguments.get('--page')
 
     # prompt for a subreddit if none given
-    if subreddit == None:
+    if subreddit is None:
         while True:
             # obtain subreddit to download images from, and number of images to download
             subreddit = raw_input('Please enter subreddit: ')
@@ -74,7 +87,7 @@ def main():
                 print('Subreddit %s does not exist.' % subreddit)
 
     # determine what to search
-    if search_term == None:
+    if search_term is None:
         if page == 'hot':
             results = reddit.subreddit(subreddit).hot()
         elif page == 'controversial':
@@ -140,11 +153,8 @@ def main():
                     img_url = root + '-size_restricted.gif'
                     print('\nDownloading', subreddit + str(count) + '.gif')
                     print('Source:', img_url)
-                    print
-                    'Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(
-                        submission)
-                    urllib.urlretrieve(img_url, 'images/%s%i%s' %
-                                       (subreddit, count, '.gif'))
+                    print('Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(submission))
+                    urllib.urlretrieve(img_url, 'images/%s%i%s' % (subreddit, count, '.gif'))
                     count += 1
             else:
                 print('\nCompleted!\n')
