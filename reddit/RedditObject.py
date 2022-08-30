@@ -153,8 +153,9 @@ class RedditObject(metaclass=ABCMeta):
             rem = parse_slashes(rem, expect=True)
             if kind is USER:
                 rem, user_page = parse_userpage(rem)
-                rem = parse_slashes(rem, expect=True)
-            rem, sort_method = parse_sortmethod(rem)
+                rem = parse_slashes(rem)
+            if len(rem) > 0:
+                rem, sort_method = parse_sortmethod(rem)
         rem = parse_slashes(rem)
         while len(rem) > 0:
             if rem[0] == '?' or rem[0] == '&':

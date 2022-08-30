@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from reddit import RedditObject, Subreddit, SortMethod, TopKind, User
+from reddit import RedditObject, Subreddit, SortMethod, TopKind, User, UserPageKind
 
 
 # noinspection HttpUrlsUsage,DuplicatedCode
@@ -29,7 +29,8 @@ class TestRedditObjectParser(TestCase):
              SortMethod.CONTROVERSIAL, TopKind.WEEK),
             ("http://www.reddit.com/r/wallpapers/top/?t=all", "http://www.reddit.com/r/wallpapers/top/?t=all", "wallpapers", SortMethod.TOP,
              TopKind.ALL),
-            ("http://www.reddit.com/r/Wall_Papers/top/?t=all&var=value&t=hour", "http://www.reddit.com/r/wall_papers/top/?t=hour", "wall_papers", SortMethod.TOP,
+            ("http://www.reddit.com/r/Wall_Papers/top/?t=all&var=value&t=hour", "http://www.reddit.com/r/wall_papers/top/?t=hour", "wall_papers",
+             SortMethod.TOP,
              TopKind.HOUR),
         ]
         for sr_name, ref, refname, sort_method, top_kind in params:
@@ -46,20 +47,24 @@ class TestRedditObjectParser(TestCase):
                 self.assertEqual(ref, sr.get_full_url())
 
     def test_users_with_default_values(self):
-        sort_method: SortMethod = next(iter(SortMethod))
-        top_kind: TopKind = next(iter(TopKind))
-        params: list[tuple[str, str, str]] = [
-            ("https://www.reddit.com/user/my_memes_will_cure_u", "https://www.reddit.com/user/my_memes_will_cure_u/submitted/hot",
-             "my_memes_will_cure_u"),
+        params: list[tuple[str, str, str, SortMethod, TopKind, UserPageKind]] = [
+            ("https://www.reddit.com/user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("https://reddit.com/user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("u/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("http://www.reddit.com/user/example_user_with_underscores", "http://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("http://www.reddit.com/user/example_user_with_underscores/gilded", "http://www.reddit.com/user/example_user_with_underscores/gilded/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), UserPageKind.GILDED),
+            ("https://www.reddit.com/user/example_user_with_underscores/saved/top?t=all", "https://www.reddit.com/user/example_user_with_underscores/saved/top/?t=all", "example_user_with_underscores", SortMethod.TOP, TopKind.ALL, UserPageKind.SAVED),
         ]
-        for user_name, ref, refname in params:
+        for user_name, ref, refname, sort_method, top_kind, user_page_kind in params:
             with self.subTest(f"Check if a correct User input is parsed to the correct User URL", user_name=user_name, ref=ref,
-                              refname=refname):
+                              refname=refname, sort_method=sort_method, top_kind=top_kind, user_page_kind=user_page_kind):
                 ro: RedditObject = RedditObject.from_user_string(user_name)
                 self.assertTrue(ro.is_user, f"Expected a User")
                 self.assertFalse(ro.is_subreddit, f"Did not expect a Subreddit")
                 sr: User = ro
                 self.assertIs(sort_method, sr.sort_method, f"Expected Sort Method {sort_method}, but got {sr.sort_method}")
+                self.assertIs(user_page_kind, sr.user_page_kind, f"Expected User Page Kind {user_page_kind}, but got {sr.user_page_kind}")
                 self.assertEqual(refname, sr.user_name, f"User Object returned wrong name \"{sr.user_name}\" instead of \"{refname}\"")
                 # TODO page
                 if sort_method.has_top_kind():
