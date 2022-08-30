@@ -27,20 +27,24 @@ import signal
 import sys
 import urllib
 from pathlib import Path
+from typing import Optional
 
 import praw
-from credentials import ID, SECRET, PASSWORD, AGENT, USERNAME
 from docopt import docopt
 from prawcore import NotFound
 from prawcore import PrawcoreException
+
+from reddit import RedditObject, NoValidRedditObjectError
 
 
 def main():
     parser = argparse.ArgumentParser(prog="Reddit Image Scraper",
                                      description='A Reddit Image Downloader that supports metadata scraping.')
     parser.add_argument('-s', '--subreddit', required=True, action="store", dest='subreddit',
-                        help='Specify the subreddit to scrape. Valid formats include "https://www.reddit.com/r/wallpapers/",'
+                        help='Specify the subreddit or user account to scrape. Valid formats include "https://www.reddit.com/r/wallpapers/",'
                              ' "wallpapers", "r/wallpapers", "u/exampleuser", "reddit.com/user/exampleuser/submitted/?sort=top&t=day"')
+    parser.add_argument('-l', '--limit', required=False, action="store", type=int, dest='limit', default=None,
+                        help='Specify the maximum number of new images to download')
     parser.add_argument('-o', '--out-dir', required=False, action="store", dest="dest_dir", default='out',
                         help='Specify the destination directory to download scraped files into. Default is "out/"')
     args = parser.parse_args()
@@ -49,8 +53,13 @@ def main():
     source_dir: Path = Path(args.source_dir)
 
     # initialize variables
-    subreddit = ''
-    num_pics = 0
+    try:
+        subreddit: RedditObject = RedditObject.from_user_string(args.subreddit)
+    except NoValidRedditObjectError as e:
+        print(e, file=sys.stderr)
+        print(f"Could not parse subreddit or user account {args.subreddit}")
+        sys.exit(1)
+    num_pics: Optional[int] = args.limit
 
     # handle 'ctrl + c' if downloads takes too long
     def sigint_handler(signum, frame):
@@ -66,12 +75,6 @@ def main():
         password=PASSWORD,
         user_agent=AGENT,
         username=USERNAME)
-
-    # get values of arguments
-    subreddit = arguments.get('--subreddit')
-    num_pics = int(arguments.get('--number'))
-    search_term = arguments.get('--query')
-    page = arguments.get('--page')
 
     # prompt for a subreddit if none given
     if subreddit is None:

@@ -55,25 +55,25 @@ class RedditObject(metaclass=ABCMeta):
         """
         SUBREDDIT, USER = 0, 1
 
-        def parse_enum(rem: str, type: Any) -> Any:
+        def parse_enum(remaining_string: str, type: Any) -> tuple[str, Any]:
             tk = ""
-            while len(rem) > 0 and rem[0].isalpha():
-                tk += rem[0]
-                rem = rem[1:]
-            if len(rem) == 0:
-                raise NoValidRedditObjectError(user_string, f"Expected {type}, instead got {rem}")
+            while len(remaining_string) > 0 and remaining_string[0].isalpha():
+                tk += remaining_string[0]
+                remaining_string = remaining_string[1:]
+            if len(tk) == 0:
+                raise NoValidRedditObjectError(user_string, f"Expected {type}, instead got {remaining_string}")
             try:
-                return type[tk.upper()]
-            except ValueError:
+                return remaining_string, type[tk.upper()]
+            except KeyError:
                 raise NoValidRedditObjectError(user_string, f"Not a {type}: {rem}")
 
-        def parse_topkind(rem: str) -> TopKind:
+        def parse_topkind(rem: str) -> tuple[str, TopKind]:
             return parse_enum(rem, TopKind)
 
-        def parse_sortmethod(rem: str) -> SortMethod:
+        def parse_sortmethod(rem: str) -> tuple[str, SortMethod]:
             return parse_enum(rem, SortMethod)
 
-        def parse_userpage(rem: str) -> SortMethod:
+        def parse_userpage(rem: str) -> tuple[str, SortMethod]:
             return parse_enum(rem, UserPageKind)
 
         def parse_slashes(rem: str, expect=False) -> str:
@@ -85,6 +85,18 @@ class RedditObject(metaclass=ABCMeta):
             while len(rem) > 0 and rem[0] == '/':
                 rem = rem[1:]
             return rem
+
+        def parse_variable_name(rem: str) -> tuple[str, str]:
+            """Parse a variable name given like variable=value... and return "value..." """
+            if len(rem) == 0:
+                raise NoValidRedditObjectError(user_string, f"Expected a variable identifier after the question mark, instead got {rem}")
+            ret = ""
+            while len(rem) > 0 and rem[0] != '=':
+                ret += rem[0]
+                rem = rem[1:]
+            if len(rem) > 0 and rem[0] == '=':
+                rem = rem[1:]
+            return rem, ret
 
         rem: str = user_string.strip()
 
@@ -121,12 +133,17 @@ class RedditObject(metaclass=ABCMeta):
         rem = parse_slashes(rem)
 
         # Parse Name
-        if len(rem) == 0 or not rem[0].isalnum():
+        def is_allowable_character(char: str):
+            return char.isalnum() or char == '_'
+
+        if len(rem) == 0 or not is_allowable_character(rem[0]):
             raise NoValidRedditObjectError(user_string, f"Invalid Subreddit or User name: {rem}")
         name: str = ""
-        while len(rem) > 0 and rem[0].isalnum():
+        while len(rem) > 0 and is_allowable_character(rem[0]):
             name += rem[0]
             rem = rem[1:]
+        if len(name) == 0:
+            raise NoValidRedditObjectError(user_string, f"Empty name! Remaining: {rem}")
 
         sort_method = default_sort_method
         top_kind = default_top_kind
@@ -135,14 +152,19 @@ class RedditObject(metaclass=ABCMeta):
         if len(rem) > 0:
             rem = parse_slashes(rem, expect=True)
             if kind is USER:
-                user_page = parse_userpage(rem)
+                rem, user_page = parse_userpage(rem)
                 rem = parse_slashes(rem, expect=True)
-            sort_method = parse_sortmethod(rem)
+            rem, sort_method = parse_sortmethod(rem)
         rem = parse_slashes(rem)
-        if len(rem) > 0:
-            if rem[0] == '?':
+        while len(rem) > 0:
+            if rem[0] == '?' or rem[0] == '&':
                 rem = rem[1:]
-                top_kind = parse_topkind(rem)
+                rem, varname = parse_variable_name(rem)
+                if varname == 't':
+                    rem, top_kind = parse_topkind(rem)
+                else:
+                    while len(rem) > 0 and (rem[0].isalnum() or rem[0] == '_'):
+                        rem = rem[1:]
             else:
                 raise NoValidRedditObjectError(user_string, f"Must have a question mark: {rem}")
         rem = parse_slashes(rem)
@@ -206,7 +228,7 @@ class User(RedditObject):
         return True
 
     def get_full_url(self) -> str:
-        ret: str = f"{super().get_full_url()}/user/{self.user_name},{self.user_page_kind.name.lower()}/{self.sort_method.name.lower()}"
+        ret: str = f"{super().get_full_url()}/user/{self.user_name}/{self.user_page_kind.name.lower()}/{self.sort_method.name.lower()}"
         if self.sort_method.has_top_kind():
             ret = f"{ret}/?t={self.top_kind.name.lower()}"
         return ret
