@@ -16,6 +16,7 @@ class NoValidRedditObjectError(Exception):
         super().__init__(f"The given request was not a valid RedditObject: \"{string}\"", *args)
 
 
+# noinspection HttpUrlsUsage
 class RedditObject(metaclass=ABCMeta):
     _URLHOST: str = f"www.reddit.com"
 

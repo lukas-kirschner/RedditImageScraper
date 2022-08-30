@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from reddit import RedditObject, Subreddit, SortMethod, TopKind, User, UserPageKind
+from reddit import RedditObject, Subreddit, SortMethod, TopKind, User, UserPageKind, NoValidRedditObjectError
 
 
 # noinspection HttpUrlsUsage,DuplicatedCode
@@ -48,13 +48,21 @@ class TestRedditObjectParser(TestCase):
 
     def test_users_with_default_values(self):
         params: list[tuple[str, str, str, SortMethod, TopKind, UserPageKind]] = [
-            ("https://www.reddit.com/user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
-            ("https://reddit.com/user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
-            ("u/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
-            ("user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
-            ("http://www.reddit.com/user/example_user_with_underscores", "http://www.reddit.com/user/example_user_with_underscores/submitted/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
-            ("http://www.reddit.com/user/example_user_with_underscores/gilded", "http://www.reddit.com/user/example_user_with_underscores/gilded/hot", "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), UserPageKind.GILDED),
-            ("https://www.reddit.com/user/example_user_with_underscores/saved/top?t=all", "https://www.reddit.com/user/example_user_with_underscores/saved/top/?t=all", "example_user_with_underscores", SortMethod.TOP, TopKind.ALL, UserPageKind.SAVED),
+            ("https://www.reddit.com/user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot",
+             "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("https://reddit.com/user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot",
+             "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("u/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot",
+             "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("user/example_user_with_underscores", "https://www.reddit.com/user/example_user_with_underscores/submitted/hot",
+             "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("http://www.reddit.com/user/example_user_with_underscores", "http://www.reddit.com/user/example_user_with_underscores/submitted/hot",
+             "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), next(iter(UserPageKind))),
+            ("http://www.reddit.com/user/example_user_with_underscores/gilded", "http://www.reddit.com/user/example_user_with_underscores/gilded/hot",
+             "example_user_with_underscores", next(iter(SortMethod)), next(iter(TopKind)), UserPageKind.GILDED),
+            ("https://www.reddit.com/user/example_user_with_underscores/saved/top?t=all",
+             "https://www.reddit.com/user/example_user_with_underscores/saved/top/?t=all", "example_user_with_underscores", SortMethod.TOP,
+             TopKind.ALL, UserPageKind.SAVED),
         ]
         for user_name, ref, refname, sort_method, top_kind, user_page_kind in params:
             with self.subTest(f"Check if a correct User input is parsed to the correct User URL", user_name=user_name, ref=ref,
@@ -70,3 +78,17 @@ class TestRedditObjectParser(TestCase):
                 if sort_method.has_top_kind():
                     self.assertIs(top_kind, sr.top_kind, f"Expected Top Kind {top_kind}, but got {sr.top_kind}")
                 self.assertEqual(ref, sr.get_full_url())
+
+    def test_invalid_reddit_objects(self):
+        params: list[str] = [
+            "www.reddit.com",
+            "reddit.com",
+            ".com",
+            "r/r/subreddit_name",
+            "r/subreddit^with.invalid/characters",
+            "!@#$%"
+        ]
+        for i, invalid_str in enumerate(params):
+            with self.subTest(msg=f"Invalid Test {i}", invalid_str=invalid_str):
+                with self.assertRaises(NoValidRedditObjectError) as cm:
+                    RedditObject.from_user_string(invalid_str)
