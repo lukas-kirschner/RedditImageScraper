@@ -46,6 +46,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
 
     reddit: praw.reddit.Reddit = connect_to_reddit()
 
+    print(f"Searching for {reddit_object.printable_name()}...")
     # Check if the subreddit or user exists
     if reddit_object.is_subreddit:
         # noinspection PyTypeChecker
@@ -113,6 +114,8 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
         case _:
             raise NotImplementedError(f"Unknown sort method: {reddit_object.sort_method}")
 
+    print(f"Found {reddit_object.printable_name()}. Starting Download.")
+
     # Todo Convert imagehashsort.py database to object and use it here to determine whether to download an image.
     # Todo add known URLs to that library and import everything from RIPME (possibly include import information)
     # Todo Use SQLite as database format and enable imagehashsort.py to use the same database format
@@ -137,7 +140,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 _, extension = os.path.splitext(u.path)
                 if extension in ['.jpg', '.gif', '.jpeg', '.png']:
                     target_file.parent.mkdir(exist_ok=True, parents=True)
-                    print(f'Downloading ({count}) {reddit_object.printable_name()} {submission.url}')
+                    print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
                     urllib.request.urlretrieve(img_url, filename=target_file)  # TODO Does this download the full-size image?
                     count += 1
                 # .gifv file extensions do not play, convert to .gif

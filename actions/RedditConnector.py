@@ -26,7 +26,9 @@ def connect_to_reddit() -> praw.reddit.Reddit:
                                     "username": "USERNAME"         
                                   }
                                   """))
+    print(f"Authenticating with Reddit...")
     reddit = praw.Reddit(
         **credentials
     )
+    print(f"Authentication successful.")
     return reddit
