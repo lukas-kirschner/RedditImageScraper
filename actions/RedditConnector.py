@@ -7,6 +7,7 @@ import praw
 
 def connect_to_reddit() -> praw.reddit.Reddit:
     # TODO read from config, passed to the method?
+    # TODO Also support a credentials.json file in the cwd?
 
     credential_file = Path(__file__).absolute().parent.parent / "credentials.json"
     """Credentials File that overrides the global configuration"""

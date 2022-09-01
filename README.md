@@ -2,30 +2,44 @@
 
 A reddit application that downloads pictures and gifs from a given subreddit.
 
-# Setup 
+# Setup
+
 1. Create a [reddit personal use script application](https://www.reddit.com/prefs/apps/).
 
-2. Add a `credentials.py` file to your working directory and add your applications credentials.
-
-		ID='YOUR_ID'  
-		SECRET='YOUR_SECRET'  
-		PASSWORD='YOUR_PASSWORD'  
-		AGENT='Example Bot by /u/example_bot'  
-		USERNAME='YOUR_USERNAME'  
-
+2. Add a `credentials.json` file to the project root directory and add your application's credentials.
+   ```json
+   {
+     "client_id": "ID",
+     "client_secret": "SECRET",
+     "password": "PASSWORD",
+     "user_agent": "AGENT",
+     "username": "USERNAME"
+   }
+   ```
 3. Run `pip install -r requirements.txt`
 
 # Usage
 
+```
+usage: Reddit Image Scraper [-h] -s SUBREDDIT [-l LIMIT] [-o DEST_DIR]
 
-	Usage: download_images.py [-s SUBREDDIT] [-n NUMBER OF PICTURES] [-p PAGE] [-q SEARCH QUERY] 
+A Reddit Image Downloader that supports metadata scraping.
 
-	-h --help                           show this
-	-s --subreddit SUBREDDIT            specify subreddit
-	-n --number NUMBER OF PICTURES      specify number of pictures to download [default: 20]
-	-p --page PAGE                      hot, top, controversial, new, rising [default: hot]
-	-q --query SEARCH QUERY             specify a specific search term
-
+options:
+  -h, --help            show this help message and exit
+  -s SUBREDDIT, --subreddit SUBREDDIT
+                        Specify the subreddit or user account to scrape. 
+                        Valid formats include 
+                           "https://www.reddit.com/r/wallpapers/",
+                           "wallpapers",
+                           "r/wallpapers",
+                           "u/exampleuser", 
+                           "reddit.com/user/exampleuser/submitted/?sort=top&t=day"
+  -l LIMIT, --limit LIMIT
+                        Specify the maximum number of new images to download
+  -o DEST_DIR, --out-dir DEST_DIR
+                        Specify the destination directory to download scraped files into. Default is "out/"
+```
 
 Your images will appear in the "images" folder created by the application.
 
