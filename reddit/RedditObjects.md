@@ -29,14 +29,17 @@ RedditObject : {static} +from_user_string(): RedditObject
 RedditObject : +is_subreddit(): bool
 RedditObject : +is_user(): bool
 RedditObject : {abstract} +get_full_url(): str
+RedditObject : {abstract} +printable_name(): str
 
 Subreddit : +name: str
 Subreddit : +is_subreddit(): bool
 Subreddit : +get_full_url(): str
+RedditObject : +printable_name(): str
 
 User : +name: str
 User : +user_page_kind: UserPageKind
 User : +is_user(): bool
 User : +get_full_url(): str
+RedditObject : +printable_name(): str
 @enduml
 ```

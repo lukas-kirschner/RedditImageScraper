@@ -3,7 +3,7 @@ This file contains all classes that are downloadable Reddit Objects
 """
 from __future__ import annotations
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from typing import Any
 
 from reddit.SortMethod import SortMethod
@@ -24,6 +24,10 @@ class RedditObject(metaclass=ABCMeta):
         self.https = https
         self.sort_method: SortMethod = sort_method
         self.top_kind: TopKind = top_kind
+
+    @abstractmethod
+    def printable_name(self) -> str:
+        pass
 
     @property
     def is_subreddit(self) -> bool:
@@ -212,6 +216,9 @@ class Subreddit(RedditObject):
             ret = f"{ret}/?t={self.top_kind.name.lower()}"
         return ret
 
+    def printable_name(self) -> str:
+        return f"r/{self.subreddit_name}"
+
 
 class User(RedditObject):
     """
@@ -234,3 +241,6 @@ class User(RedditObject):
         if self.sort_method.has_top_kind():
             ret = f"{ret}/?t={self.top_kind.name.lower()}"
         return ret
+
+    def printable_name(self) -> str:
+        return f"u/{self.user_name}"
