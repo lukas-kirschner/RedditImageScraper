@@ -27,9 +27,6 @@ def connect_to_reddit() -> praw.reddit.Reddit:
                                   }
                                   """))
     reddit = praw.Reddit(
-        client_id=credentials["client_id"],
-        client_secret=credentials["client_secret"],
-        password=credentials["password"],
-        user_agent=credentials["user_agent"],
-        username=credentials["username"])
+        **credentials
+    )
     return reddit

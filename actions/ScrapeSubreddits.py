@@ -136,6 +136,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 img_url = submission.url
                 _, extension = os.path.splitext(u.path)
                 if extension in ['.jpg', '.gif', '.jpeg', '.png']:
+                    target_file.parent.mkdir(exist_ok=True, parents=True)
                     print(f'Downloading ({count}) {reddit_object.printable_name()} {submission.url}')
                     urllib.request.urlretrieve(img_url, filename=target_file)  # TODO Does this download the full-size image?
                     count += 1
