@@ -19,6 +19,7 @@ def write_metadata_from_reddit_submission(target_file: Path, submission: praw.mo
     # and https://github.com/LeoHsiao1/pyexiv2/blob/master/docs/Tutorial.md
     # and https://exiv2.org/tags.html
     # and https://praw.readthedocs.io/en/latest/code_overview/models/submission.html
+    upvotes_comment: str = f"{submission.score} upvotes ({submission.upvote_ratio}%), {submission.num_comments} comments."
     exif_data = {
         "Exif.Photo.DateTimeOriginal": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y:%m:%d %H:%M:%S"),
         "Exif.Image.DateTime": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y:%m:%d %H:%M:%S"),
@@ -42,11 +43,12 @@ def write_metadata_from_reddit_submission(target_file: Path, submission: praw.mo
         'Xmp.photoshop.AuthorsPosition': "Reddit User",
         'Xmp.photoshop.Source': "https://www.reddit.com" + submission.permalink,
         'Xmp.dc.title': "lang=\"x-default\" " + submission.title,
-        'Xmp.dc.description': "lang=\"x-default\" " + submission.selftext,
+        'Xmp.dc.description': "lang=\"x-default\" " + (submission.selftext + "\n" + upvotes_comment).strip(),
         'Xmp.dc.rights': "lang=\"x-default\" https://www.reddit.com" + submission.permalink,
         'Xmp.iptc.CreatorContactInfo/Iptc4xmpCore:CiUrlWork': "https://www.reddit.com" + submission.permalink,
         'Xmp.xmpMM.PreservedFileName': target_file.name,
         'Xmp.crs.RawFileName': target_file.name,
+        'Xmp.exif.UserComment': upvotes_comment,
     }
     if submission.author is not None:  # For deleted users, the author is None
         exif_data['Exif.Image.Artist'] = "u/" + submission.author.name
