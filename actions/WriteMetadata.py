@@ -23,14 +23,14 @@ def write_metadata_from_reddit_submission(target_file: Path, submission: praw.mo
         "Exif.Photo.DateTimeOriginal": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y:%m:%d %H:%M:%S"),
         "Exif.Image.DateTime": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y:%m:%d %H:%M:%S"),
         "Exif.Photo.DateTimeDigitized": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y:%m:%d %H:%M:%S"),
-        'Exif.Image.Artist': "u/" + submission.author.name,
         'Exif.Image.Rating': None,  # Delete the rating
         "Exif.Image.ImageDescription": submission.title,
     }
     iptc_data = {
-        "Iptc.Application2.Headline": submission.title,
+        "Iptc.Application2.Headline": submission.selftext,
+        "Iptc.Application2.ObjectName": submission.title,
         "Iptc.Application2.Caption": submission.selftext,
-        "Iptc.Application2.Byline": "u/" + submission.author.name,
+        "Iptc.Application2.BylineTitle": "Reddit User",
         "Iptc.Application2.DateCreated": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y-%m-%d"),
         "Iptc.Application2.TimeCreated": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%H:%M:%S"),
         "Iptc.Application2.Source": "r/" + submission.subreddit.display_name,
@@ -39,7 +39,16 @@ def write_metadata_from_reddit_submission(target_file: Path, submission: praw.mo
     xmp_data = {
         "Xmp.xmp.CreateDate": dt.datetime.utcfromtimestamp(submission.created_utc).strftime("%Y-%M-%DT%H:%M:%S") + ".000",
         'Xmp.xmp.Rating': None,  # Delete the rating, if there is any
+        'Xmp.photoshop.AuthorsPosition': "Reddit User",
+        'Xmp.dc.title': "lang=\"x-default\" " + submission.title,
+        'Xmp.dc.description': "lang=\"x-default\" " + submission.selftext,
+        'Xmp.iptc.CreatorContactInfo/Iptc4xmpCore:CiUrlWork': "reddit.com",
     }
+    if submission.author is not None:  # For deleted users, the author is None
+        exif_data['Exif.Image.Artist'] = "u/" + submission.author.name
+        iptc_data['Iptc.Application2.Byline'] = "u/" + submission.author.name
+    if submission.author_flair_text is not None:
+        iptc_data["Iptc.Application2.BylineTitle"] += f" ({submission.author_flair_text})"
     return write_metadata(target_file, exif_data, iptc_data, xmp_data)
 
 
