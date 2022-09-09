@@ -6,15 +6,18 @@ from pathlib import Path
 
 import praw.models
 import pyexiv2
+from config import Config
 
 
-def write_metadata_from_reddit_submission(target_file: Path, submission: praw.models.Submission) -> None:
+def write_metadata_from_reddit_submission(target_file: Path, submission: praw.models.Submission, cfg: Config) -> None:
     """
     Write the metadata found in the given Reddit submission to the image
     :param target_file: Image to write
     :param submission: Reddit post to scrape for metadata
     :return: None
     """
+    if not cfg["metadata_scraper.write_metadata"]:
+        return
     # For a reference, see https://exiv2.org/iptc.html
     # and https://github.com/LeoHsiao1/pyexiv2/blob/master/docs/Tutorial.md
     # and https://exiv2.org/tags.html

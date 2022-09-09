@@ -7,6 +7,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import praw
+from config import Config
 from praw.models import Submission, Redditor
 from prawcore import NotFound, PrawcoreException
 
@@ -34,16 +35,17 @@ class UserDoesNotExist(Exception):
     pass
 
 
-def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destination: Path) -> None:
+def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destination: Path, cfg: Config) -> None:
     """
     Scrape the given reddit object
+    :param cfg: The global configuration
     :param destination: Destination directory
     :param reddit_object: Reddit object to scrape
     :param limit: Limit of images that should newly be downloaded, or None to disable the limit
     :return: None
     """
     import actions
-    reddit: praw.reddit.Reddit = actions.connect_to_reddit()
+    reddit: praw.reddit.Reddit = actions.connect_to_reddit(cfg)
 
     print(f"Searching for {reddit_object.printable_name()}...")
     # Check if the subreddit or user exists
@@ -141,7 +143,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                     target_file.parent.mkdir(exist_ok=True, parents=True)
                     print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
                     urllib.request.urlretrieve(img_url, filename=target_file)  # TODO Does this download the full-size image?
-                    actions.write_metadata_from_reddit_submission(target_file, submission)
+                    actions.write_metadata_from_reddit_submission(target_file, submission, cfg)
                     count += 1
                 # .gifv file extensions do not play, convert to .gif
                 # elif extension == '.gifv':
