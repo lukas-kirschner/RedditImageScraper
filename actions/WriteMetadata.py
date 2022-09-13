@@ -3,6 +3,7 @@ This module contains functions to write metadata to images
 """
 import datetime as dt
 from pathlib import Path
+from typing import Optional
 
 import praw.models
 import pyexiv2
@@ -10,11 +11,11 @@ import pyexiv2
 MetadataModel = tuple[dict[str, str], dict[str, str], dict[str, str]]
 
 
-def get_model_from_submission(target_file: Path, submission: praw.models.Submission) -> MetadataModel:
+def get_model_from_submission(target_file: Optional[Path], submission: praw.models.Submission) -> MetadataModel:
     """
     Get the metadata model from the given submission.
 
-    :param target_file: Target file to write
+    :param target_file: Target file to write, or None, if not applicable
     :param submission: Submission to scrape
     :return: the model
     """
@@ -49,10 +50,11 @@ def get_model_from_submission(target_file: Path, submission: praw.models.Submiss
         'Xmp.dc.description': "lang=\"x-default\" " + (submission.selftext + "\n" + upvotes_comment).strip(),
         'Xmp.dc.rights': "lang=\"x-default\" https://www.reddit.com" + submission.permalink,
         'Xmp.iptc.CreatorContactInfo/Iptc4xmpCore:CiUrlWork': "https://www.reddit.com" + submission.permalink,
-        'Xmp.xmpMM.PreservedFileName': target_file.name,
-        'Xmp.crs.RawFileName': target_file.name,
         'Xmp.exif.UserComment': upvotes_comment,
     }
+    if target_file is not None:
+        xmp_data["Xmp.xmpMM.PreservedFileName"] = target_file.name
+        xmp_data["Xmp.crs.RawFileName"] = target_file.name
     if submission.author is not None:  # For deleted users, the author is None
         exif_data['Exif.Image.Artist'] = "u/" + submission.author.name
         iptc_data['Iptc.Application2.Byline'] = "u/" + submission.author.name

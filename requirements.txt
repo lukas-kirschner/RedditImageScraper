@@ -5,3 +5,4 @@ pyexiv2
 git+https://gitlab.com/lukaslsm/imagehashsort.py.git
 config>=0.5.0
 xdg
+requests

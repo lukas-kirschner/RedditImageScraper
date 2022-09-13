@@ -1,3 +1,3 @@
-from actions.RedditConnector import connect_to_reddit
+from actions.RedditConnector import connect_to_reddit, get_imgur_client_id
 from actions.ScrapeSubreddits import scrape_subreddit
 from actions.WriteMetadata import MetadataModel, get_model_from_submission, write_metadata

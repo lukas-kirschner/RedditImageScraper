@@ -11,6 +11,7 @@ from config import Config
 from praw.models import Submission, Redditor
 from prawcore import NotFound, PrawcoreException
 
+from actions.downloader import ImgurAlbumDownloader
 from reddit import RedditObject, Subreddit, User, SortMethod, UserPageKind
 
 
@@ -124,7 +125,6 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
     # 2. Download the image into its appropriate location (?)
     # 3. Check if the phash is already known, if yes, delete the downloaded image
     # 4. (opt-out) rename image to its PHash
-    # Todo install imagehashsort.py via Pip through Github URL? Possible?
     # find images/gifs in subreddit
     img_extensions: list[str] = ['.jpg', '.jpeg', '.png']
     if cfg['reddit_downloader.download_gif']:
@@ -138,7 +138,10 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 break
             u: namedtuple = urlparse(submission.url)
             """The parts of the URL"""
-            if 'https://i.imgur.com/' in submission.url or 'https://i.redd.it' in submission.url:
+            if "imgur.com/a/" in submission.url or "imgur.com/gallery/" in submission.url:
+                downloader = ImgurAlbumDownloader()
+                count += downloader.download(submission, cfg, destination_path)
+            elif '://i.imgur.com/' in submission.url or '://i.redd.it' in submission.url:
                 target_file = destination_path / Path(u.path).name  # Download a single file
                 img_url = submission.url
                 _, extension = os.path.splitext(u.path)

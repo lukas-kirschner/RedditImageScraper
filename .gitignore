@@ -1,3 +1,5 @@
 /credentials.json
 /images/
 /venv/
+/testpics*/
+__pycache__/

@@ -11,7 +11,8 @@ A Reddit application that downloads pictures from a given subreddit, scraping an
    {
      "client_id": "ID",
      "client_secret": "SECRET",
-     "user_agent": "AGENT"
+     "user_agent": "AGENT",
+     "imgur_client_id": "ID"
    }
    ```
 3. Run `pip install -r requirements.txt`

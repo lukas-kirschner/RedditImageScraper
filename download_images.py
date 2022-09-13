@@ -41,7 +41,8 @@ reddit_connector: { # Configuration related to the reddit connector
     credential_file: 'credentials.json', # Path of the credentials file
     client_id: '', # Client ID to use for login
     client_secret: '', # Client Secret
-    user_agent: '' # User agent
+    user_agent: '', # User agent
+    imgur_client_id: '' # imgur Client ID
 },
 reddit_downloader: { # Configuration related to the reddit downloader
     download_gif: false # If true, download .gif files from imgur and reddit
