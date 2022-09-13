@@ -6,18 +6,18 @@ from pathlib import Path
 
 import praw.models
 import pyexiv2
-from config import Config
+
+MetadataModel = tuple[dict[str, str], dict[str, str], dict[str, str]]
 
 
-def write_metadata_from_reddit_submission(target_file: Path, submission: praw.models.Submission, cfg: Config) -> None:
+def get_model_from_submission(target_file: Path, submission: praw.models.Submission) -> MetadataModel:
     """
-    Write the metadata found in the given Reddit submission to the image
-    :param target_file: Image to write
-    :param submission: Reddit post to scrape for metadata
-    :return: None
+    Get the metadata model from the given submission.
+
+    :param target_file: Target file to write
+    :param submission: Submission to scrape
+    :return: the model
     """
-    if not cfg["metadata_scraper.write_metadata"]:
-        return
     # For a reference, see https://exiv2.org/iptc.html
     # and https://github.com/LeoHsiao1/pyexiv2/blob/master/docs/Tutorial.md
     # and https://exiv2.org/tags.html
@@ -59,7 +59,7 @@ def write_metadata_from_reddit_submission(target_file: Path, submission: praw.mo
         xmp_data['Xmp.dc.creator'] = "u/" + submission.author.name
     if submission.author_flair_text is not None:
         iptc_data["Iptc.Application2.BylineTitle"] += f" ({submission.author_flair_text})"
-    return write_metadata(target_file, exif_data, iptc_data, xmp_data)
+    return exif_data, iptc_data, xmp_data
 
 
 def write_metadata(target_file: Path, exif_data: dict[str, str], iptc_data: dict[str, str], xmp_data: dict[str, str]) -> None:

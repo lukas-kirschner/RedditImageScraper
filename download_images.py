@@ -42,6 +42,9 @@ reddit_connector: { # Configuration related to the reddit connector
     client_id: '', # Client ID to use for login
     client_secret: '', # Client Secret
     user_agent: '' # User agent
+},
+reddit_downloader: { # Configuration related to the reddit downloader
+    download_gif: false # If true, download .gif files from imgur and reddit
 }
 """)
 """The default config that is saved if a config file could not be found"""
@@ -80,7 +83,6 @@ def main():
                              'in the user\'s configuration directory.')
     args = parser.parse_args()
 
-    # Init Source DirTODO
     dest_dir: Path = Path(args.dest_dir)
 
     cfg_file: Path = Path(args.config_file) if args.config_file is not None else (xdg_conf / "RedditImageScraper.cfg")

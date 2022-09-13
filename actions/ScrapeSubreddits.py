@@ -126,6 +126,9 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
     # 4. (opt-out) rename image to its PHash
     # Todo install imagehashsort.py via Pip through Github URL? Possible?
     # find images/gifs in subreddit
+    img_extensions: list[str] = ['.jpg', '.jpeg', '.png']
+    if cfg['reddit_downloader.download_gif']:
+        img_extensions.append(".gif")
     try:
         count = 0
         submission: Submission
@@ -135,15 +138,17 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 break
             u: namedtuple = urlparse(submission.url)
             """The parts of the URL"""
-            target_file = destination_path / Path(u.path).name
             if 'https://i.imgur.com/' in submission.url or 'https://i.redd.it' in submission.url:
+                target_file = destination_path / Path(u.path).name  # Download a single file
                 img_url = submission.url
                 _, extension = os.path.splitext(u.path)
-                if extension in ['.jpg', '.gif', '.jpeg', '.png']:
+                if extension in img_extensions:
                     target_file.parent.mkdir(exist_ok=True, parents=True)
                     print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
-                    urllib.request.urlretrieve(img_url, filename=target_file)  # TODO Does this download the full-size image?
-                    actions.write_metadata_from_reddit_submission(target_file, submission, cfg)
+                    urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
+                    if cfg["metadata_scraper.write_metadata"]:
+                        exif_data, iptc_data, xmp_data = actions.get_model_from_submission(target_file, submission)
+                        actions.write_metadata(target_file, exif_data, iptc_data, xmp_data)
                     count += 1
                 # .gifv file extensions do not play, convert to .gif
                 # elif extension == '.gifv':
