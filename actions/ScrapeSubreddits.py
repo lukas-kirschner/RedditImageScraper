@@ -151,6 +151,8 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                     urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
                     if cfg["metadata_scraper.write_metadata"]:
                         exif_data, iptc_data, xmp_data = actions.get_model_from_submission(target_file, submission)
+                        if cfg['metadata_scraper.write_keywords']:
+                            exif_data, iptc_data, xmp_data = actions.set_keywords((exif_data, iptc_data, xmp_data), submission, cfg)
                         actions.write_metadata(target_file, exif_data, iptc_data, xmp_data)
                     count += 1
                 # .gifv file extensions do not play, convert to .gif

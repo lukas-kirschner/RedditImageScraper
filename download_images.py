@@ -34,7 +34,11 @@ from reddit import RedditObject, NoValidRedditObjectError
 
 _default_config: str = dedent("""
 metadata_scraper: { # Configuration related to the metadata scraper
-    write_metadata: true # Setting this to false completely disables the metadata scraper
+    write_metadata: true, # Setting this to false completely disables the metadata scraper
+    write_keywords: true, # Setting this to true enables writing keywords (Subreddit name, ...) to the metadata
+    subreddit_name: 'Subreddit', # Name of a subreddit, parent of all subreddits in the keyword hierarchy
+    user_name: 'Reddit User', # Name of a user, parent of all reddit users in the keyword hierarchy
+    lightroom_hierarchy_separator: '|' # The hierarchy separator character used in Photoshop Lightroom
 },
 reddit_connector: { # Configuration related to the reddit connector
     use_credential_file: true, # If true, use a credentials file and ignore the credentials provided below

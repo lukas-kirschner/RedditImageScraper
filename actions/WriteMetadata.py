@@ -7,6 +7,7 @@ from typing import Optional
 
 import praw.models
 import pyexiv2
+from config import Config
 
 MetadataModel = tuple[dict[str, str], dict[str, str], dict[str, str]]
 
@@ -55,6 +56,41 @@ def set_post_title(model: MetadataModel, title: str) -> MetadataModel:
     return exif_data, iptc_data, xmp_data
 
 
+def set_keywords(model: MetadataModel, submission: praw.models.Submission, cfg: Config) -> MetadataModel:
+    """
+    Set the keyword hierarchy.
+    For DigiKam, according to the specification, the hierarchy separator is always a '/' character.
+    All other programs use the lightroom hierarchy separator from the global config.
+    This does not write any IPTC tags, since Lightroom cannot import hierarchical tags if IPTC tags are present.
+
+    :param cfg: Global Config
+    :param model: Model to set
+    :param submission: Submission that was scraped
+    :return: the new model
+    """
+    lightroom_sep: str = cfg['metadata_scraper.lightroom_hierarchy_separator']
+    subreddit_name: str = cfg['metadata_scraper.subreddit_name']
+    user_name: str = cfg['metadata_scraper.user_name']
+    exif_data, iptc_data, xmp_data = model
+    # Set XMP keywords
+    # noinspection PyTypeChecker
+    xmp_data["Xmp.dc.subject"] = [subreddit_name, submission.subreddit.display_name]
+    # noinspection PyTypeChecker
+    xmp_data["Xmp.lr.hierarchicalSubject"] = [f"{subreddit_name}{lightroom_sep}{submission.subreddit.display_name}"]
+    # noinspection PyTypeChecker
+    xmp_data["Xmp.acdsee.categories"] = [f"{subreddit_name}{lightroom_sep}{submission.subreddit.display_name}"]
+    # noinspection PyTypeChecker
+    xmp_data["Xmp.digiKam.TagsList"] = [f"{subreddit_name}/{submission.subreddit.display_name}"]
+
+    if submission.author is not None:  # Set User Keywords
+        # noinspection PyTypeChecker
+        xmp_data["Xmp.dc.subject"] += [user_name, submission.author.name]
+        xmp_data["Xmp.lr.hierarchicalSubject"] += [f"{user_name}{lightroom_sep}{submission.author.name}"]
+        xmp_data["Xmp.acdsee.categories"] += [f"{user_name}{lightroom_sep}{submission.author.name}"]
+        xmp_data["Xmp.digiKam.TagsList"] += [f"{user_name}/{submission.author.name}"]
+    return exif_data, iptc_data, xmp_data
+
+
 def get_model_from_submission(target_file: Optional[Path], submission: praw.models.Submission) -> MetadataModel:
     """
     Get the metadata model from the given submission.
@@ -78,10 +114,10 @@ def get_model_from_submission(target_file: Optional[Path], submission: praw.mode
         "Iptc.Application2.Contact": "https://www.reddit.com" + submission.permalink,
     }
     xmp_data = {
-        'Xmp.xmp.Rating': None,  # Delete the rating, if there is any
+        'Xmp.xmp.Rating': None,  # Delete the rating, if present
         'Xmp.photoshop.AuthorsPosition': "Reddit User",
         'Xmp.photoshop.Source': "https://www.reddit.com" + submission.permalink,
-        'Xmp.acdsee.rating': 0,
+        'Xmp.acdsee.rating': None,  # Delete the rating, if present
         'Xmp.acdsee.notes': (submission.selftext + "\n" + upvotes_comment).strip()[:4095],
         'Xmp.dc.description': "lang=\"x-default\" " + (submission.selftext + "\n" + upvotes_comment).strip(),
         'Xmp.dc.rights': "lang=\"x-default\" https://www.reddit.com" + submission.permalink,
