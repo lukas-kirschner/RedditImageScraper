@@ -1,6 +1,3 @@
-import os
-import urllib
-import urllib.request
 from collections import namedtuple
 from pathlib import Path
 from typing import Optional
@@ -8,11 +5,11 @@ from urllib.parse import urlparse
 
 import praw
 from config import Config
-from imagehashsort import ImageDatabase, perceptual_hash
+from imagehashsort import ImageDatabase
 from praw.models import Submission, Redditor
 from prawcore import NotFound, PrawcoreException
 
-from actions.downloader import ImgurAlbumDownloader, Downloader
+from actions.downloader import ImgurAlbumDownloader, Downloader, HTTPDownloader
 from database import URLManager
 from reddit import RedditObject, Subreddit, User, SortMethod, UserPageKind
 
@@ -130,9 +127,6 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
     # 3. Check if the phash is already known, if yes, delete the downloaded image
     # 4. (opt-out) rename image to its PHash
     # find images/gifs in subreddit
-    img_extensions: list[str] = ['.jpg', '.jpeg', '.png']
-    if cfg['reddit_downloader.download_gif']:
-        img_extensions.append(".gif")
     try:
         count = 0
         submission: Submission
@@ -147,40 +141,24 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 continue
             if "imgur.com/a/" in submission.url or "imgur.com/gallery/" in submission.url:
                 downloader: Downloader = ImgurAlbumDownloader()
-                count += downloader.download(submission, cfg, destination_path, urlmanager, library)
-                urlmanager.add_url_to_database(submission.url)
             elif '://i.imgur.com/' in submission.url or '://i.redd.it' in submission.url:
-                target_file = destination_path / Path(u.path).name  # Download a single file
-                img_url = submission.url
-                _, extension = os.path.splitext(u.path)
-                if extension in img_extensions:
-                    target_file.parent.mkdir(exist_ok=True, parents=True)
-                    print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
-                    urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
-                    imhash = perceptual_hash(target_file)
-                    if cfg["reddit_downloader.discard_phashed_duplicates"] and library.hash_in_hashes(imhash):
-                        print(f"{target_file} was detected to be a perceptual duplicate of another image and will be deleted!")
-                        target_file.unlink()
-                        continue
-                    library.store_image(target_file, imhash)
-                    library.save()  # TODO Interval?
-                    urlmanager.add_url_to_database(submission.url)
-                    if cfg["metadata_scraper.write_metadata"]:
-                        exif_data, iptc_data, xmp_data = actions.get_model_from_submission(target_file, submission)
-                        if cfg['metadata_scraper.write_keywords']:
-                            exif_data, iptc_data, xmp_data = actions.set_keywords((exif_data, iptc_data, xmp_data), submission, cfg)
-                        actions.write_metadata(target_file, exif_data, iptc_data, xmp_data)
-                    count += 1
-                # .gifv file extensions do not play, convert to .gif
-                # elif extension == '.gifv':
-                #     print('\nDownloading', subreddit + str(count) + '.gif')
-                #     print('Source:', img_url)
-                #     print('Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(submission))
-                #     root, _ = os.path.splitext(img_url)
-                #     img_url = root + '.gif'
-                #     urllib.urlretrieve(img_url, 'images/%s%i%s' %
-                #                        (subreddit, count, '.gif'))
-                #     count += 1
+                print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
+                downloader: Downloader = HTTPDownloader()
+            else:
+                continue  # Unsupported URL
+            count += downloader.download(submission, cfg, destination_path, urlmanager, library)
+            urlmanager.add_url_to_database(submission.url)
+
+            # .gifv file extensions do not play, convert to .gif
+            # elif extension == '.gifv':
+            #     print('\nDownloading', subreddit + str(count) + '.gif')
+            #     print('Source:', img_url)
+            #     print('Comments: https://www.reddit.com/r/' + subreddit + '/comments/' + str(submission))
+            #     root, _ = os.path.splitext(img_url)
+            #     img_url = root + '.gif'
+            #     urllib.urlretrieve(img_url, 'images/%s%i%s' %
+            #                        (subreddit, count, '.gif'))
+            #     count += 1
 
     except PrawcoreException as e:
         print(f'Error accessing subreddit!\n{str(e)}')

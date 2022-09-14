@@ -1,2 +1,3 @@
 from actions.downloader.Downloader import Downloader
+from actions.downloader.HTTPDownloader import HTTPDownloader
 from actions.downloader.ImgurAlbumDownloader import ImgurAlbumDownloader
