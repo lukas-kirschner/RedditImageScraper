@@ -30,6 +30,7 @@ import xdg
 from config import Config
 
 from actions import scrape_subreddit
+from database import URLManager
 from reddit import RedditObject, NoValidRedditObjectError
 
 _default_config: str = dedent("""
@@ -49,7 +50,8 @@ reddit_connector: { # Configuration related to the reddit connector
     imgur_client_id: '' # imgur Client ID
 },
 reddit_downloader: { # Configuration related to the reddit downloader
-    download_gif: false # If true, download .gif files from imgur and reddit
+    download_gif: false, # If true, download .gif files from imgur and reddit
+    url_history_file: 'url_history.txt' # Name of the text file to store successfully downloaded URLs into. Will be created in the global data folder.
 }
 """)
 """The default config that is saved if a config file could not be found"""
@@ -59,18 +61,16 @@ def main():
     # Initialize global paths
     xdg_conf: Path = xdg.xdg_config_home()
     if xdg_conf is None:
-        config_base_dir: Path = (Path.home() / ".config").absolute()
-        print(f"XDG_CONFIG_HOME is not set! Attempting to store the global config in {config_base_dir}", file=sys.stderr)
-    else:
-        config_base_dir: Path = xdg_conf / "RedditImageScraper"
+        xdg_conf: Path = (Path.home() / ".config").absolute()
+        print(f"XDG_CONFIG_HOME is not set! Attempting to store the global config in {xdg_conf}", file=sys.stderr)
+    config_base_dir: Path = xdg_conf / "RedditImageScraper"
     config_base_dir.mkdir(exist_ok=True, parents=False)
 
     xdg_data: Path = xdg.xdg_data_home()
     if xdg_data is None:
-        data_base_dir: Path = (Path.home() / ".local/share").absolute()
-        print(f"XDG_DATA_HOME is not set! Attempting to store application data in {data_base_dir}", file=sys.stderr)
-    else:
-        data_base_dir: Path = xdg_data / "RedditImageScraper"
+        xdg_data: Path = (Path.home() / ".local/share").absolute()
+        print(f"XDG_DATA_HOME is not set! Attempting to store application data in {xdg_data}", file=sys.stderr)
+    data_base_dir: Path = xdg_data / "RedditImageScraper"
     data_base_dir.mkdir(exist_ok=True, parents=False)
 
     # Initialize Argument Parser
@@ -90,12 +90,15 @@ def main():
 
     dest_dir: Path = Path(args.dest_dir)
 
-    cfg_file: Path = Path(args.config_file) if args.config_file is not None else (xdg_conf / "RedditImageScraper.cfg")
+    cfg_file: Path = Path(args.config_file) if args.config_file is not None else (config_base_dir / "RedditImageScraper.cfg")
     if not cfg_file.is_file():  # Write the default config file
         with cfg_file.open("w") as cf:
             cf.write(_default_config)
     with cfg_file.open("r") as cf:
         cfg: Config = Config(cf)
+
+    urlman_file: Path = data_base_dir / cfg["reddit_downloader.url_history_file"]
+    urlmanager: URLManager = URLManager(urlman_file)
 
     # initialize variables
     try:
@@ -106,7 +109,7 @@ def main():
         sys.exit(1)
     num_pics: Optional[int] = args.limit
 
-    scrape_subreddit(subreddit, num_pics, dest_dir, cfg)
+    scrape_subreddit(subreddit, num_pics, dest_dir, cfg, urlmanager)
 
 
 if __name__ == '__main__':

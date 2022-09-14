@@ -12,6 +12,7 @@ from praw.models import Submission, Redditor
 from prawcore import NotFound, PrawcoreException
 
 from actions.downloader import ImgurAlbumDownloader
+from database import URLManager
 from reddit import RedditObject, Subreddit, User, SortMethod, UserPageKind
 
 
@@ -36,9 +37,10 @@ class UserDoesNotExist(Exception):
     pass
 
 
-def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destination: Path, cfg: Config) -> None:
+def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destination: Path, cfg: Config, urlmanager: URLManager) -> None:
     """
     Scrape the given reddit object
+    :param urlmanager: URL Manager
     :param cfg: The global configuration
     :param destination: Destination directory
     :param reddit_object: Reddit object to scrape
@@ -138,9 +140,13 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 break
             u: namedtuple = urlparse(submission.url)
             """The parts of the URL"""
+            if urlmanager.parsed_url_already_in_database(u):
+                print(f"Skipping URL {submission.url} because it has already been downloaded before.")
+                continue
             if "imgur.com/a/" in submission.url or "imgur.com/gallery/" in submission.url:
                 downloader = ImgurAlbumDownloader()
                 count += downloader.download(submission, cfg, destination_path)
+                urlmanager.add_url_to_database(submission.url)
             elif '://i.imgur.com/' in submission.url or '://i.redd.it' in submission.url:
                 target_file = destination_path / Path(u.path).name  # Download a single file
                 img_url = submission.url
@@ -149,6 +155,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                     target_file.parent.mkdir(exist_ok=True, parents=True)
                     print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
                     urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
+                    urlmanager.add_url_to_database(submission.url)
                     if cfg["metadata_scraper.write_metadata"]:
                         exif_data, iptc_data, xmp_data = actions.get_model_from_submission(target_file, submission)
                         if cfg['metadata_scraper.write_keywords']:
