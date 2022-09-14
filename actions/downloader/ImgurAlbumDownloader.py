@@ -13,11 +13,13 @@ from urllib.parse import urlparse
 
 import requests
 from config import Config
+from imagehashsort import ImageDatabase, perceptual_hash
 from praw.models import Submission
 
 import actions
 from actions import get_imgur_client_id
 from actions.downloader.Downloader import Downloader
+from database import URLManager
 
 
 class NotAnImgurAlbumUrlError(Exception):
@@ -31,7 +33,9 @@ class ImgurAlbumDownloader(Downloader):
     A downloader that downloads whole Imgur albums and sorts their images into a subfolder
     """
 
-    def download(self, submission: Submission, cfg: Config, destination: Path) -> int:
+    def download(self, submission: Submission, cfg: Config, destination: Path, urlmanager: URLManager, library: ImageDatabase) -> int:
+        allow_duplicate_hashes: bool = cfg["reddit_downloader.keep_imgur_album_phash_duplicates"] or \
+                                       not cfg["reddit_downloader.discard_phashed_duplicates"]
         url: str = submission.url
         if cfg["metadata_scraper.write_metadata"]:
             meta_object = actions.get_model_from_submission(None, submission)
@@ -40,15 +44,19 @@ class ImgurAlbumDownloader(Downloader):
         else:
             meta_object = None
         client_id = get_imgur_client_id(cfg)
-        return self.download_single_album(url, destination, client_id, reddit_post_metadata=meta_object)
+        return self.download_single_album(url, destination, client_id, reddit_post_metadata=meta_object, library=library,
+                                          allow_duplicate_phashes=allow_duplicate_hashes)
 
     # noinspection PyMethodMayBeStatic
     def download_single_album(self, url: str, target_path: Path, client_id: str, /, debug=False,
-                              reddit_post_metadata: Optional[tuple[dict[str, str], dict[str, str], dict[str, str]]] = None) -> int:
+                              reddit_post_metadata: Optional[tuple[dict[str, str], dict[str, str], dict[str, str]]] = None,
+                              library: Optional[ImageDatabase] = None, allow_duplicate_phashes: bool = True) -> int:
         """
         Download a single given Imgur album and store it into the appropriate subfolder in the given path.
         The subfolder is the title of the imgur album, plus a unique identifier (the id part of the imgur URL).
 
+        :param allow_duplicate_phashes: If True, allow duplicate images
+        :param library: If given, check for hashes in the image library
         :param reddit_post_metadata: The base metadata of the reddit post, or None, if no metadata should be scraped at all
         :param client_id: Imgur Client ID
         :param url: URL to download
@@ -115,6 +123,14 @@ class ImgurAlbumDownloader(Downloader):
             image_file: Path = target_folder / f"{i + 1:02d} {Path(image_u.path).name}"
             image_file.parent.mkdir(exist_ok=True, parents=True)
             urllib.request.urlretrieve(image_url, filename=image_file)
+            if library is not None:
+                phash = perceptual_hash(image_file)
+                if library.hash_in_hashes(phash):
+                    if not allow_duplicate_phashes:
+                        print(f"The image {image_file} was a duplicate and will be deleted!")
+                        image_file.unlink()
+                library.store_image(image_file, phash)
+                library.save()  # TODO Interval?
             downloaded += 1
 
             # Add metadata

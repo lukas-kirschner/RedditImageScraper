@@ -28,6 +28,7 @@ from typing import Optional
 
 import xdg
 from config import Config
+from imagehashsort import ImageDatabase, JSONImageDatabase
 
 from actions import scrape_subreddit
 from database import URLManager
@@ -51,7 +52,10 @@ reddit_connector: { # Configuration related to the reddit connector
 },
 reddit_downloader: { # Configuration related to the reddit downloader
     download_gif: false, # If true, download .gif files from imgur and reddit
-    url_history_file: 'url_history.txt' # Name of the text file to store successfully downloaded URLs into. Will be created in the global data folder.
+    url_history_file: 'url_history.txt', # Name of the text file to store successfully downloaded URLs into. Will be created in the global data folder
+    phash_file: 'images.db', # Name of the database file to store perceptual image hashes. Will be created in the global data folder
+    discard_phashed_duplicates: true, # If true, discard downloaded images that were detected to be a perceptual duplicate of other images
+    keep_imgur_album_phash_duplicates = true # If true, keep duplicates that were found in imgur albums, even though they would usually be discarded
 }
 """)
 """The default config that is saved if a config file could not be found"""
@@ -100,6 +104,12 @@ def main():
     urlman_file: Path = data_base_dir / cfg["reddit_downloader.url_history_file"]
     urlmanager: URLManager = URLManager(urlman_file)
 
+    imgdb_file: Path = data_base_dir / cfg["reddit_downloader.phash_file"]
+    if imgdb_file.is_file():
+        library: ImageDatabase = JSONImageDatabase.load(imgdb_file)
+    else:
+        library: ImageDatabase = JSONImageDatabase(imgdb_file)
+
     # initialize variables
     try:
         subreddit: RedditObject = RedditObject.from_user_string(args.subreddit)
@@ -109,7 +119,7 @@ def main():
         sys.exit(1)
     num_pics: Optional[int] = args.limit
 
-    scrape_subreddit(subreddit, num_pics, dest_dir, cfg, urlmanager)
+    scrape_subreddit(subreddit, num_pics, dest_dir, cfg, urlmanager, library)
 
 
 if __name__ == '__main__':

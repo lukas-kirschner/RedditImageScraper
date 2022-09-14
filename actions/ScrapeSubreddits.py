@@ -8,10 +8,11 @@ from urllib.parse import urlparse
 
 import praw
 from config import Config
+from imagehashsort import ImageDatabase, perceptual_hash
 from praw.models import Submission, Redditor
 from prawcore import NotFound, PrawcoreException
 
-from actions.downloader import ImgurAlbumDownloader
+from actions.downloader import ImgurAlbumDownloader, Downloader
 from database import URLManager
 from reddit import RedditObject, Subreddit, User, SortMethod, UserPageKind
 
@@ -37,9 +38,11 @@ class UserDoesNotExist(Exception):
     pass
 
 
-def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destination: Path, cfg: Config, urlmanager: URLManager) -> None:
+def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destination: Path, cfg: Config, urlmanager: URLManager,
+                     library: ImageDatabase) -> None:
     """
     Scrape the given reddit object
+    :param library: PHash Library
     :param urlmanager: URL Manager
     :param cfg: The global configuration
     :param destination: Destination directory
@@ -121,7 +124,6 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
     print(f"Found {reddit_object.printable_name()}. Starting Download.")
 
     # Todo Convert imagehashsort.py database to object and use it here to determine whether to download an image.
-    # Todo add known URLs to that library and import everything from RIPME (possibly include import information)
     # Todo Use SQLite as database format and enable imagehashsort.py to use the same database format
     # 1. Check if submission URL is already downloaded, skip
     # 2. Download the image into its appropriate location (?)
@@ -144,8 +146,8 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                 print(f"Skipping URL {submission.url} because it has already been downloaded before.")
                 continue
             if "imgur.com/a/" in submission.url or "imgur.com/gallery/" in submission.url:
-                downloader = ImgurAlbumDownloader()
-                count += downloader.download(submission, cfg, destination_path)
+                downloader: Downloader = ImgurAlbumDownloader()
+                count += downloader.download(submission, cfg, destination_path, urlmanager, library)
                 urlmanager.add_url_to_database(submission.url)
             elif '://i.imgur.com/' in submission.url or '://i.redd.it' in submission.url:
                 target_file = destination_path / Path(u.path).name  # Download a single file
@@ -155,6 +157,13 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
                     target_file.parent.mkdir(exist_ok=True, parents=True)
                     print(f'Downloading image {count} from {reddit_object.printable_name()} {submission.url}')
                     urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
+                    imhash = perceptual_hash(target_file)
+                    if cfg["reddit_downloader.discard_phashed_duplicates"] and library.hash_in_hashes(imhash):
+                        print(f"{target_file} was detected to be a perceptual duplicate of another image and will be deleted!")
+                        target_file.unlink()
+                        continue
+                    library.store_image(target_file, imhash)
+                    library.save()  # TODO Interval?
                     urlmanager.add_url_to_database(submission.url)
                     if cfg["metadata_scraper.write_metadata"]:
                         exif_data, iptc_data, xmp_data = actions.get_model_from_submission(target_file, submission)
