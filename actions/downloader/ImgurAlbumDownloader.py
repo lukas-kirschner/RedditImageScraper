@@ -85,9 +85,11 @@ class ImgurAlbumDownloader(Downloader):
             if success_json['data']['title'] is not None else success_json['data']['id']
         album_description: str = f"{success_json['data']['description'] if success_json['data']['description'] is not None else ''}"
         album_epoch: int = int(success_json['data']['datetime'])
+        album_title_id: str = f"{album_title} {success_json['data']['id']}".strip()
+        """A unique album identifier that is both unique and human-readable"""
 
         if success_json['data']['is_album']:
-            target_folder: Path = target_path / f"{album_title} {success_json['data']['id']}"
+            target_folder: Path = target_path / album_title_id
             images: list[dict[str, str]] = success_json['data']['images']
         else:
             # This is not an album, but an image in itself!
@@ -141,6 +143,7 @@ class ImgurAlbumDownloader(Downloader):
                 xmp['Xmp.dc.description'] = xmp.get('Xmp.dc.description', "") + "\n" + (image_description + "\n" + add_comment).strip()
                 xmp["Xmp.xmpMM.PreservedFileName"] = image_file.name
                 xmp["Xmp.crs.RawFileName"] = image_file.name
+                xmp["Xmp.xmpDM.album"] = album_title_id
                 actions.write_metadata(image_file, exif, iptc, xmp)
 
         return downloaded

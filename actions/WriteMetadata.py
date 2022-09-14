@@ -31,6 +31,7 @@ def set_time_created(model: MetadataModel, epoch: int) -> MetadataModel:
     xmp_data["Xmp.xmp.CreateDate"] = dt.datetime.utcfromtimestamp(epoch).strftime("%Y-%M-%DT%H:%M:%S") + ".000"
     xmp_data["Xmp.acdsee.datetime"] = dt.datetime.utcfromtimestamp(epoch).strftime("%Y:%m:%d %H:%M:%S")
     xmp_data["Xmp.dc.date"] = dt.datetime.utcfromtimestamp(epoch).strftime("%Y-%M-%DT%H:%M:%S")
+    xmp_data["Xmp.xmpDM.releaseDate"] = dt.datetime.utcfromtimestamp(epoch).strftime("%Y-%M-%DT%H:%M:%S")
     return exif_data, iptc_data, xmp_data
 
 
@@ -87,6 +88,7 @@ def get_model_from_submission(target_file: Optional[Path], submission: praw.mode
         'Xmp.dc.source': "https://www.reddit.com" + submission.permalink,
         'Xmp.iptc.CreatorContactInfo/Iptc4xmpCore:CiUrlWork': "https://www.reddit.com" + submission.permalink,
         'Xmp.exif.UserComment': upvotes_comment,
+        'Xmp.xmpDM.comment': upvotes_comment,
     }
     if target_file is not None:
         xmp_data["Xmp.xmpMM.PreservedFileName"] = target_file.name
@@ -94,8 +96,10 @@ def get_model_from_submission(target_file: Optional[Path], submission: praw.mode
     if submission.author is not None:  # For deleted users, the author is None
         exif_data['Exif.Image.Artist'] = "u/" + submission.author.name
         iptc_data['Iptc.Application2.Byline'] = "u/" + submission.author.name
+        xmp_data['Xmp.xmpRights.Owner'] = "u/" + submission.author.name
         xmp_data['Xmp.dc.creator'] = "u/" + submission.author.name
         xmp_data['Xmp.acdsee.author'] = "u/" + submission.author.name
+        xmp_data['Xmp.xmpDM.artist'] = "u/" + submission.author.name
     if submission.author_flair_text is not None:
         iptc_data["Iptc.Application2.BylineTitle"] += f" ({submission.author_flair_text})"
     exif_data, iptc_data, xmp_data = set_time_created((exif_data, iptc_data, xmp_data), submission.created_utc)
