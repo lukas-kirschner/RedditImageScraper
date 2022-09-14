@@ -128,18 +128,11 @@ class ImgurAlbumDownloader(Downloader):
                                    f"{success_json['data'].get('comment_count', 'N/A')}.\n" \
                                    f"Album uploaded: {dt.datetime.utcfromtimestamp(album_epoch).strftime('%Y:%m:%d %H:%M:%S')}"
                 exif, iptc, xmp = deepcopy(reddit_post_metadata)
-                exif["Exif.Photo.DateTimeOriginal"] = dt.datetime.utcfromtimestamp(image_epoch).strftime("%Y:%m:%d %H:%M:%S")
-                exif["Exif.Image.DateTime"] = dt.datetime.utcfromtimestamp(image_epoch).strftime("%Y:%m:%d %H:%M:%S")
-                exif["Exif.Photo.DateTimeDigitized"] = dt.datetime.utcfromtimestamp(image_epoch).strftime("%Y:%m:%d %H:%M:%S")
-                iptc["Iptc.Application2.DateCreated"] = dt.datetime.utcfromtimestamp(image_epoch).strftime("%Y-%m-%d")
-                iptc["Iptc.Application2.TimeCreated"] = dt.datetime.utcfromtimestamp(image_epoch).strftime("%H:%M:%S")
+                exif, iptc, xmp = actions.set_time_created((exif, iptc, xmp), image_epoch)
                 if image_title:
                     if exif.get("Exif.Image.ImageDescription", "") != "":  # Append reddit post title
                         image_title += " - " + exif["Exif.Image.ImageDescription"]
-                    exif["Exif.Image.ImageDescription"] = image_title
-                    iptc["Iptc.Application2.Headline"] = image_title
-                    iptc["Iptc.Application2.ObjectName"] = image_title
-                    xmp['Xmp.dc.title'] = "lang=\"x-default\" " + image_title
+                    actions.set_post_title((exif, iptc, xmp), image_title)
                 if album_description:
                     image_description = (image_description + "\n" + "(" + album_description + ")").strip()
                 if image_description:
