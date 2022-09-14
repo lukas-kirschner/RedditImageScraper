@@ -141,8 +141,8 @@ class ImgurAlbumDownloader(Downloader):
                     image_description = (image_description + "\n" + "(" + album_description + ")").strip()
                 if image_description:
                     iptc["Iptc.Application2.Caption"] = image_description.strip()
-                xmp['Xmp.exif.UserComment'] = (xmp.get('Xmp.exif.UserComment', "") + "\n" + add_comment).strip()
-                xmp['Xmp.dc.description'] = xmp.get('Xmp.dc.description', "") + "\n" + (image_description + "\n" + add_comment).strip()
+                new_comment: str = (xmp.get('Xmp.exif.UserComment', "") + "\n" + add_comment).strip()
+                exif, iptc, xmp = actions.set_long_comment((exif, iptc, xmp), new_comment)
                 xmp["Xmp.xmpMM.PreservedFileName"] = image_file.name
                 xmp["Xmp.crs.RawFileName"] = image_file.name
                 xmp["Xmp.xmpDM.album"] = album_title_id

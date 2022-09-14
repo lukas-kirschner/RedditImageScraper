@@ -47,12 +47,54 @@ def set_post_title(model: MetadataModel, title: str) -> MetadataModel:
     exif_data, iptc_data, xmp_data = model
     # Set Exif title
     exif_data["Exif.Image.ImageDescription"] = title
+    exif_data["Exif.Image.XPTitle"] = title
     # Set IPTC title
     iptc_data["Iptc.Application2.Headline"] = title
     iptc_data["Iptc.Application2.ObjectName"] = title
     # Set XMP title
     xmp_data["Xmp.acdsee.caption"] = title
     xmp_data["Xmp.dc.title"] = "lang=\"x-default\" " + title
+    return exif_data, iptc_data, xmp_data
+
+
+def set_author(model: MetadataModel, author: str) -> MetadataModel:
+    """
+    Set the post author of the post's metadata.
+
+    :param model: Model to set
+    :param author: Post author
+    :return: the new model
+    """
+    # Set EXIF Author
+    exif_data, iptc_data, xmp_data = model
+    exif_data['Exif.Image.Artist'] = author
+    exif_data['Exif.Image.XPAuthor'] = author
+    # Set IPTC Author
+    iptc_data['Iptc.Application2.Byline'] = author
+    # Set XMP Author
+    xmp_data['Xmp.xmpRights.Owner'] = author
+    xmp_data['Xmp.dc.creator'] = author
+    xmp_data['Xmp.acdsee.author'] = author
+    xmp_data['Xmp.xmpDM.artist'] = author
+    return exif_data, iptc_data, xmp_data
+
+
+def set_long_comment(model: MetadataModel, comment: str) -> MetadataModel:
+    """
+    Attach a long comment without character limitations to the metadata
+
+    :param model: Model to set
+    :param comment: Comment to attach
+    :return: the new model
+    """
+    exif_data, iptc_data, xmp_data = model
+    # Set EXIF Comment
+    exif_data['Exif.Photo.UserComment'] = comment
+    # Set XMP Comment
+    xmp_data['Xmp.exif.UserComment'] = comment
+    xmp_data['Xmp.xmpDM.comment'] = comment
+    xmp_data['Xmp.dc.description'] = ("lang=\"x-default\" " + comment).strip()
+    xmp_data['Xmp.acdsee.notes'] = comment.strip()[:4095]
     return exif_data, iptc_data, xmp_data
 
 
@@ -118,28 +160,20 @@ def get_model_from_submission(target_file: Optional[Path], submission: praw.mode
         'Xmp.photoshop.AuthorsPosition': "Reddit User",
         'Xmp.photoshop.Source': "https://www.reddit.com" + submission.permalink,
         'Xmp.acdsee.rating': None,  # Delete the rating, if present
-        'Xmp.acdsee.notes': (submission.selftext + "\n" + upvotes_comment).strip()[:4095],
-        'Xmp.dc.description': "lang=\"x-default\" " + (submission.selftext + "\n" + upvotes_comment).strip(),
         'Xmp.dc.rights': "lang=\"x-default\" https://www.reddit.com" + submission.permalink,
         'Xmp.dc.source': "https://www.reddit.com" + submission.permalink,
         'Xmp.iptc.CreatorContactInfo/Iptc4xmpCore:CiUrlWork': "https://www.reddit.com" + submission.permalink,
-        'Xmp.exif.UserComment': upvotes_comment,
-        'Xmp.xmpDM.comment': upvotes_comment,
     }
     if target_file is not None:
         xmp_data["Xmp.xmpMM.PreservedFileName"] = target_file.name
         xmp_data["Xmp.crs.RawFileName"] = target_file.name
     if submission.author is not None:  # For deleted users, the author is None
-        exif_data['Exif.Image.Artist'] = "u/" + submission.author.name
-        iptc_data['Iptc.Application2.Byline'] = "u/" + submission.author.name
-        xmp_data['Xmp.xmpRights.Owner'] = "u/" + submission.author.name
-        xmp_data['Xmp.dc.creator'] = "u/" + submission.author.name
-        xmp_data['Xmp.acdsee.author'] = "u/" + submission.author.name
-        xmp_data['Xmp.xmpDM.artist'] = "u/" + submission.author.name
+        exif_data, iptc_data, xmp_data = set_author((exif_data, iptc_data, xmp_data), "u/" + submission.author.name)
     if submission.author_flair_text is not None:
         iptc_data["Iptc.Application2.BylineTitle"] += f" ({submission.author_flair_text})"
     exif_data, iptc_data, xmp_data = set_time_created((exif_data, iptc_data, xmp_data), submission.created_utc)
     exif_data, iptc_data, xmp_data = set_post_title((exif_data, iptc_data, xmp_data), submission.title)
+    exif_data, iptc_data, xmp_data = set_long_comment((exif_data, iptc_data, xmp_data), upvotes_comment)
     return exif_data, iptc_data, xmp_data
 
 
