@@ -35,6 +35,8 @@ class ImgurAlbumDownloader(Downloader):
         url: str = submission.url
         if cfg["metadata_scraper.write_metadata"]:
             meta_object = actions.get_model_from_submission(None, submission)
+            if cfg['metadata_scraper.write_keywords']:
+                meta_object = actions.set_keywords(meta_object, submission, cfg)
         else:
             meta_object = None
         client_id = get_imgur_client_id(cfg)
