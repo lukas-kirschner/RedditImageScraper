@@ -134,6 +134,7 @@ class ImgurAlbumDownloader(Downloader):
                     if not allow_duplicate_phashes:
                         print(f"The image {image_file} was a duplicate and will be deleted!")
                         image_file.unlink()
+                        continue
                 library.store_image(image_file, phash)
                 # library.save()  # TODO Interval?
             downloaded += 1
