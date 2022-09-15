@@ -101,7 +101,7 @@ class ImgurAlbumDownloader(Downloader):
         """A unique album identifier that is both unique and human-readable"""
 
         if success_json['data']['is_album']:
-            target_folder: Path = target_path / album_title_id
+            target_folder: Path = target_path / actions.sanitize_filename(album_title_id)
             images: list[dict[str, str]] = success_json['data']['images']
             print(f"Downloading imgur album {album_title_id} from {url}")
         else:
@@ -124,7 +124,7 @@ class ImgurAlbumDownloader(Downloader):
             image_epoch: int = int(image_data['datetime'])
 
             # Download the image
-            image_file: Path = target_folder / f"{i + 1:02d} {Path(image_u.path).name}"
+            image_file: Path = target_folder / actions.sanitize_filename(f"{i + 1:02d} {Path(image_u.path).name}")
             image_file.parent.mkdir(exist_ok=True, parents=True)
             print(f"Downloading image {i+1}/{len(images)} from imgur album: {image_url}")
             urllib.request.urlretrieve(image_url, filename=image_file)

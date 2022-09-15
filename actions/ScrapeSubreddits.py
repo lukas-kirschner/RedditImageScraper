@@ -55,7 +55,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
     if reddit_object.is_subreddit:
         # noinspection PyTypeChecker
         reddit_object: Subreddit = reddit_object
-        destination_path: Path = destination / f"reddit_sub_{reddit_object.subreddit_name}"
+        destination_path: Path = destination / actions.sanitize_filename(f"reddit_sub_{reddit_object.subreddit_name}")
         try:
             reddit.subreddits.search_by_name(reddit_object.subreddit_name, exact=True)
         except NotFound as e:
@@ -67,7 +67,7 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
             reddit.redditors.search(reddit_object.user_name, exact=True)
         except NotFound as e:
             raise UserDoesNotExist from e
-        destination_path: Path = destination / f"reddit_user_{reddit_object.user_name}"
+        destination_path: Path = destination / actions.sanitize_filename(f"reddit_user_{reddit_object.user_name}")
         pass  # TODO IMPLEMENT
     else:
         raise NotImplementedError(f"Unknown kind of RedditObject to download: {reddit_object}")
