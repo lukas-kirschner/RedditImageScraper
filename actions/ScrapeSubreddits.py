@@ -1,3 +1,4 @@
+import sys
 from collections import namedtuple
 from pathlib import Path
 from typing import Optional
@@ -163,9 +164,10 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
     except PrawcoreException as e:
         print(f'Error accessing subreddit!\n{str(e)}')
         library.save()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         library.save()
-        raise e
+        sys.stdout.flush()
+        print(f"Received Keyboard Interrupt.", file=sys.stderr)
     except BaseException as e:
         library.emergency_save()
         raise e
