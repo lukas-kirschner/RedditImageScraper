@@ -55,6 +55,7 @@ class ImgurAlbumDownloader(Downloader):
         Download a single given Imgur album and store it into the appropriate subfolder in the given path.
         The subfolder is the title of the imgur album, plus a unique identifier (the id part of the imgur URL).
 
+        :param debug: if True, print debug messages to stdout
         :param allow_duplicate_phashes: If True, allow duplicate images
         :param library: If given, check for hashes in the image library
         :param reddit_post_metadata: The base metadata of the reddit post, or None, if no metadata should be scraped at all
@@ -89,7 +90,8 @@ class ImgurAlbumDownloader(Downloader):
             # TODO Handle errors here
             return 0
         success_json = json.loads(response.text)
-        pprint.pprint(success_json)
+        if debug:
+            pprint.pprint(success_json)
 
         album_title: str = f"{success_json['data']['title']}" \
             if success_json['data']['title'] is not None else success_json['data']['id']
@@ -101,10 +103,12 @@ class ImgurAlbumDownloader(Downloader):
         if success_json['data']['is_album']:
             target_folder: Path = target_path / album_title_id
             images: list[dict[str, str]] = success_json['data']['images']
+            print(f"Downloading imgur album {album_title_id} from {url}")
         else:
             # This is not an album, but an image in itself!
             target_folder: Path = target_path
             images: list[dict[str, str]] = [success_json['data']]
+            print(f"Downloading imgur photo from gallery {album_title_id} from {url}")
 
         # Download the images and add metadata
         downloaded: int = 0
@@ -122,6 +126,7 @@ class ImgurAlbumDownloader(Downloader):
             # Download the image
             image_file: Path = target_folder / f"{i + 1:02d} {Path(image_u.path).name}"
             image_file.parent.mkdir(exist_ok=True, parents=True)
+            print(f"Downloading image {i+1}/{len(images)} from imgur album: {image_url}")
             urllib.request.urlretrieve(image_url, filename=image_file)
             if library is not None:
                 phash = perceptual_hash(image_file)
