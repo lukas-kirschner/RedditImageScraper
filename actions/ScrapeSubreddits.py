@@ -162,3 +162,12 @@ def scrape_subreddit(reddit_object: RedditObject, limit: Optional[int], destinat
 
     except PrawcoreException as e:
         print(f'Error accessing subreddit!\n{str(e)}')
+        library.save()
+    except KeyboardInterrupt as e:
+        library.save()
+        raise e
+    except BaseException as e:
+        library.emergency_save()
+        raise e
+    else:
+        library.save()

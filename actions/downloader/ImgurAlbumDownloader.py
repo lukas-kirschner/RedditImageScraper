@@ -130,7 +130,7 @@ class ImgurAlbumDownloader(Downloader):
                         print(f"The image {image_file} was a duplicate and will be deleted!")
                         image_file.unlink()
                 library.store_image(image_file, phash)
-                library.save()  # TODO Interval?
+                # library.save()  # TODO Interval?
             downloaded += 1
 
             # Add metadata
