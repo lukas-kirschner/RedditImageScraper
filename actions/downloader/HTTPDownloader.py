@@ -2,6 +2,7 @@ import os
 import urllib.request
 from collections import namedtuple
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlparse
 
 from config import Config
@@ -29,7 +30,12 @@ class HTTPDownloader(Downloader):
         if extension not in img_extensions:
             return 0
         target_file.parent.mkdir(exist_ok=True, parents=True)
-        urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
+        try:
+            urllib.request.urlretrieve(img_url, filename=target_file)  # Download the full-size image
+        except HTTPError as e:
+            if e.code == 404:
+                print(f"{img_url} could not be downloaded (404 not found)!")
+                return 0
         imhash = perceptual_hash(target_file)
         if cfg["reddit_downloader.discard_phashed_duplicates"] and library.hash_in_hashes(imhash):
             print(f"{target_file} was detected to be a perceptual duplicate of another image and will be deleted!")
